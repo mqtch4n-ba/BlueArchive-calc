@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ブルアカキャラ計算</title>
+  <link rel="stylesheet" href="なんとか.css">
+  
+  <style>
+    /* 追加スタイル
+      (なんとか.css に追記しても良いですが、確実適用のためここに記述します)
+    */
+
+    /* --- モーダルウィンドウのレイアウト調整 (スクロール対応含む) --- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      
+      /* ★重要: 画面からはみ出さないようにし、スクロール可能にする */
+      max-height: 90vh;
+      overflow-y: auto;
+      
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      position: relative;
+      animation: fadeIn 0.3s;
+    }
+
+    /* 閉じるボタン */
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #aaa;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .close-btn:hover { color: #000; }
+
+    /* モーダル内の各セクション */
+    .calc-section h3 {
+      font-size: 16px;
+      margin: 15px 0 10px 0;
+      border-left: 4px solid #007bff;
+      padding-left: 8px;
+      color: #555;
+    }
+
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .calc-row-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .calc-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .input-group label {
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: #555;
+    }
+    .input-group input {
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .enemy-info {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* 計算実行ボタン */
+    .calc-exec-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+    .calc-exec-btn:hover {
+      background-color: #0056b3;
+    }
+
+    /* 結果表示エリア */
+    .result-area {
+      background-color: #e8f5e9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .result-row {
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    .damage-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background-color: #fff;
+    }
+    .damage-table th, .damage-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .damage-table th {
+      background-color: #f1f1f1;
+    }
+
+    /* デバフ入力欄の強調 */
+    #debuff-def {
+      border-color: #ff9800;
+      background-color: #fff8e1;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <h1>ブルーアーカイブステータス計算</h1>
+
+  <div class="info-box">
+    <img src="Haruka_00.png" alt="キャラクター画像" id="character-image">
+
+    <div class="text-left">
+      
+      <div class="name-and-stats">
+        <div class="text-ue">
+          <select id="character-select" aria-label="キャラクター選択">
+            <option value="">読み込み中...</option>
+          </select>
+        </div>
+
+        <div class="text-migi-group">
+          <div class="text-migi">
+            <p>HP: <span id="hp-value">-</span></p>
+            <p>防御力: <span id="def-value">-</span></p>
+          </div>
+          <div class="text-migi2">
+            <p>攻撃力: <span id="atk-value">-</span></p>
+            <p>治癒力: <span id="heal-value">-</span></p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-naka">
+        <div class="column-left">
+          <p>☆
+            <select id="chara-hoshi" aria-label="星ランク">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </p>
+          <p>Lv.
+            <select id="chara-level" aria-label="キャラクターレベル">
+              <option value="1">1</option>
+              <option value="10">10</option>
+              <option value="50">50</option>
+              <option value="90">90</option>
+            </select>
+          </p>
+        </div>
+        <div class="column-right">
+          <p>愛用品
+           <select id="aiyouhin" aria-label="愛用品の有無">
+            <option value="1">なし</option>
+            <option value="2">あり</option>
+           </select>
+          </p>
+          <p>
+            <select id="aiyouhin-tier" aria-label="愛用品ランク">
+              <option value="0">␣</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select>
+          </p>
+        </div>
+      </div>
+
+      <div class="text-shita">
+        <div class="column-left2">
+          <p>武器
+            <select id="buki-switch" aria-label="武器の有無">
+              <option value="1">なし</option>
+              <option value="2">あり</option>
+            </select>
+          </p>        
+          <p>☆
+            <select id="buki_hoshi" aria-label="武器の星ランク">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </p>
+          <p>Lv.
+            <select id="buki_level" aria-label="武器レベル">
+              <option value="1">1</option>
+              <option value="30">30</option>
+              <option value="40">40</option>
+              <option value="50">50</option>
+              <option value="60">60</option>
+            </select>
+          </p>
+        </div>
+        
+        <div class="column-right2">
+          <p>絆
+            <select id="kizuna" aria-label="絆ランク">
+              <option value="1">1</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+          </p>
+          <p>装備
+            <select id="soubi-1" aria-label="装備スロット1">
+              <option value="0">T0</option>
+              <option value="1">T1</option>
+              <option value="2">T2</option>
+              <option value="3">T3</option>
+              <option value="4">T4</option>
+              <option value="5">T5</option>
+              <option value="6">T6</option>
+              <option value="7">T7</option>
+              <option value="8">T8</option>
+              <option value="9">T9</option>
+              <option value="10">T10</option>
+            </select>
+            <select id="soubi-2" aria-label="装備スロット2">
+              <option value="0">T0</option>
+              <option value="1">T1</option>
+              <option value="2">T2</option>
+              <option value="3">T3</option>
+              <option value="4">T4</option>
+              <option value="5">T5</option>
+              <option value="6">T6</option>
+              <option value="7">T7</option>
+              <option value="8">T8</option>
+              <option value="9">T9</option>
+              <option value="10">T10</option>
+            </select>
+            <select id="soubi-3" aria-label="装備スロット3">
+              <option value="0">T0</option>
+              <option value="1">T1</option>
+              <option value="2">T2</option>
+              <option value="3">T3</option>
+              <option value="4">T4</option>
+              <option value="5">T5</option>
+              <option value="6">T6</option>
+              <option value="7">T7</option>
+              <option value="8">T8</option>
+              <option value="9">T9</option>
+              <option value="10">T10</option>
+            </select>
+          </p>
+          <p>HP WB
+            <select id="wb-hp" aria-label="WB:HP">
+              <option value="0">0</option>
+              <option value="25">25</option>
+            </select>
+          </p>
+          <p>攻撃 WB
+            <select id="wb-atk" aria-label="WB:攻撃">
+              <option value="0">0</option>
+              <option value="25">25</option>
+            </select>
+          </p>
+          <p>治癒 WB
+          <select id="wb-heal" aria-label="WB:治癒">
+            <option value="0">0</option>
+            <option value="25">25</option>
+          </select>
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </div> 
+
+  <button id="open-modal-btn" class="calc-open-btn">ダメージ計算画面へ</button>
+
+
+  <div id="damage-modal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="close-btn" id="close-modal-btn">&times;</span>
+      <h2>ダメージ計算</h2>
+      
+      <div class="damage-calc-area">
+        
+        <div class="calc-section">
+          <h3>1. 敵・基本設定</h3>
+          <div class="calc-row">
+            <label>敵選択:</label>
+            <select id="enemy-select">
+              <option value="">ロード中...</option>
+            </select>
+          </div>
+          <div class="enemy-info">
+             防御: <span id="enemy-def-display">0</span> / 
+             回避: <input type="number" id="enemy-eva-input" value="100" style="width:60px;"> 
+             <span style="font-size:12px;">(手動変更可)</span>
+             <br>
+             タイプ: <span id="enemy-type-display">-</span>
+             <span id="def-reduction-rate" style="font-size: 12px; color: #666;"></span>
+          </div>
+
+          <div class="calc-row-group">
+            <div class="calc-col">
+              <label>攻撃タイプ</label>
+              <select id="attack-type-select">
+                <option value="爆発">爆発 (Red)</option>
+                <option value="貫通">貫通 (Yellow)</option>
+                <option value="神秘">神秘 (Blue)</option>
+                <option value="振動">振動 (Purple)</option>
+              </select>
+            </div>
+            <div class="calc-col">
+              <label>命中値</label>
+              <input type="number" id="stat-accuracy" value="100" placeholder="例:700">
+            </div>
+            <div class="calc-col">
+              <label>安定値</label>
+              <input type="number" id="stat-stability" value="1000" placeholder="例:1300">
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="calc-section">
+          <h3>2. 倍率・バフ・デバフ</h3>
+          <div class="calc-row">
+            <label>現在攻撃力 (ステータス画面より):</label>
+            <span id="modal-current-atk" style="font-weight:bold; font-size: 1.2em; color:#007bff;">0</span>
+          </div>
+          
+          <div class="calc-grid">
+            <div class="input-group">
+              <label>スキル倍率 (%)</label>
+              <input type="number" id="skill-multiplier" value="100">
+            </div>
+            <div class="input-group">
+              <label>攻撃力バフ (%)</label>
+              <input type="number" id="buff-atk" value="0">
+            </div>
+            <div class="input-group">
+              <label>会心ダメバフ (%)</label>
+              <input type="number" id="buff-crit-dmg" value="0">
+            </div>
+            <div class="input-group">
+              <label>ダメバフ(特効等) (%)</label>
+              <input type="number" id="buff-dmg" value="0">
+            </div>
+            <div class="input-group">
+              <label style="color:#d32f2f; font-weight:bold;">防御デバフ (%)</label>
+              <input type="number" id="debuff-def" value="0" placeholder="例: 30">
+            </div>
+          </div>
+        </div>
+
+        <button id="calc-execute-btn" class="calc-exec-btn">ダメージ計算実行</button>
+
+        <hr>
+
+        <div class="result-area">
+          <div class="result-row">
+            <span>命中率:</span> <span id="res-hit-rate" style="font-weight:bold;">100%</span>
+            <span style="margin-left:15px;">相性:</span> <span id="res-type-adv" style="font-weight:bold;">1.0倍</span>
+            <br>
+            <span style="font-size:12px; color:#555;">(デバフ適用後防御: <span id="res-def-final">0</span>)</span>
+          </div>
+          
+          <table class="damage-table">
+            <thead>
+              <tr>
+                <th>判定</th>
+                <th>下限 (安定値最悪)</th>
+                <th>上限 (安定値最高)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>通常</td>
+                <td id="dmg-normal-min">-</td>
+                <td id="dmg-normal-max">-</td>
+              </tr>
+              <tr style="color:#d32f2f; font-weight:bold;">
+                <td>会心</td>
+                <td id="dmg-crit-min">-</td>
+                <td id="dmg-crit-max">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+<script>
+  // --- 0. グローバル変数 ---
+  let currentCharId = null;
+  let currentAtk = 0;
+
+  // --- 1. ヘルパー関数群 ---
+  function getStarBonus(starArray, hoshiValue) {
+    const data = starArray.find(b => b.star === hoshiValue);
+    if (data) return { hp: data.hp_multiplier, atk: data.atk_multiplier, heal: data.heal_multiplier };
+    return { hp: 1.0, atk: 1.0, heal: 1.0 };
+  }
+  function getKizunaBonus(kizunaArray, kizunaValue) {
+    const data = kizunaArray.find(b => b.rank === kizunaValue);
+    if (data) return { atk: data.bonus_atk, hp: data.bonus_hp };
+    return { atk: 0, hp: 0 };
+  }
+  function getWeaponBonus(weaponArray, bukiStar, bukiLevel) {
+    const data = weaponArray.find(b => b.star === bukiStar && b.level === bukiLevel);
+    if (data) return { atk: data.bonus_atk, hp: data.bonus_hp };
+    return { atk: 0, hp: 0 };
+  }
+  function getEquipmentBonus(equipmentArray, type, tier) {
+    if (tier === 0) return { atk_multiplier: 1.0, hp_multiplier: 1.0, hp_add: 0, def_add: 0, hp_mul: 1.0 };
+    const entries = equipmentArray.filter(b => b.equipment_type === type && b.tier === tier);
+    const bonuses = { atk_multiplier: 1.0, hp_multiplier: 1.0, hp_add: 0, def_add: 0, hp_mul: 1.0 };
+    for (const entry of entries) {
+      if (type === 2 && entry.stat_type === 'hp_multiplier') bonuses['hp_mul'] = entry.value;
+      else bonuses[entry.stat_type] = entry.value;
+    }
+    return bonuses;
+  }
+
+  // --- 2. サーバーデータ取得 ---
+  async function fetchCharacterData(characterName) {
+    try {
+      const response = await fetch(`/api/character/${characterName}`);
+      if (!response.ok) throw new Error('キャラクターデータの取得に失敗しました。');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+  async function fetchCharacters() {
+    try {
+      const response = await fetch('/api/characters');
+      if (!response.ok) throw new Error('キャラリストの取得に失敗しました。');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  // --- 3. メイン画面：ステータス計算 ---
+  async function updateStats() {
+    const charSelect = document.getElementById('character-select');
+    const selectedCharName = charSelect.value;
+    
+    if (!selectedCharName) return;
+
+    const allData = await fetchCharacterData(selectedCharName); 
+    
+    if (!allData) {
+      document.getElementById('hp-value').textContent = 'Error';
+      return;
+    }
+
+    const baseStatsData = allData.baseStats;
+    document.getElementById('character-image').src = baseStatsData.image_path;
+    
+    const baseStats = {
+      hp: { base: baseStatsData.base_hp, grow: baseStatsData.growth_hp },
+      def: { base: baseStatsData.base_def, grow: baseStatsData.growth_def },
+      atk: { base: baseStatsData.base_atk, grow: baseStatsData.growth_atk },
+      heal: { base: baseStatsData.base_heal, grow: baseStatsData.growth_heal }
+    };
+    const bonuses = allData.bonuses;
+
+    // 愛用品UI制御
+    const hasBondGear = allData.hasBondGear;
+    const aiyouhinSelect = document.getElementById('aiyouhin');
+    const aiyouhinTierSelect = document.getElementById('aiyouhin-tier');
+    
+    if (hasBondGear) {
+      aiyouhinSelect.disabled = false;
+      aiyouhinTierSelect.disabled = false;
+    } else {
+      aiyouhinSelect.value = "1";
+      aiyouhinTierSelect.value = "0";
+      aiyouhinSelect.disabled = true;
+      aiyouhinTierSelect.disabled = true;
+    }
+
+    // 各種パラメータ取得
+    const levelValue = parseInt(document.getElementById('chara-level').value);
+    const hoshiValue = parseInt(document.getElementById('chara-hoshi').value);
+    const isBukiOn = document.getElementById('buki-switch').value === "2";
+    const bukiStar = parseInt(document.getElementById('buki_hoshi').value);
+    const bukiLevel = parseInt(document.getElementById('buki_level').value);
+    const kizunaValue = parseInt(document.getElementById('kizuna').value);
+
+    const wbHpValue = parseInt(document.getElementById('wb-hp').value);
+    const wbAtkValue = parseInt(document.getElementById('wb-atk').value);
+    const wbHealValue = parseInt(document.getElementById('wb-heal').value);
+
+    const starMultipliers = getStarBonus(bonuses.star, hoshiValue);
+    const kizunaBonuses = getKizunaBonus(bonuses.kizuna, kizunaValue);
+    
+    let atkBonusAdd = kizunaBonuses.atk;
+    let hpBonusAdd = kizunaBonuses.hp;
+
+    if (isBukiOn) {
+      const weaponBonuses = getWeaponBonus(bonuses.weapon, bukiStar, bukiLevel);
+      atkBonusAdd += weaponBonuses.atk;
+      hpBonusAdd += weaponBonuses.hp;
+    }
+
+    const soubi1Value = parseInt(document.getElementById('soubi-1').value);
+    const equip1 = getEquipmentBonus(bonuses.equipment, 1, soubi1Value);
+    const soubiAtkMultiplier = equip1.atk_multiplier;
+    const soubiHpMultiplier = equip1.hp_multiplier;
+
+    const soubi2Value = parseInt(document.getElementById('soubi-2').value);
+    const equip2 = getEquipmentBonus(bonuses.equipment, 2, soubi2Value);
+    
+    hpBonusAdd += equip2.hp_add;
+    const defBonusAdd = equip2.def_add;
+    const soubi2HpMultiplier = equip2.hp_mul;
+
+    // 計算関数: WB対応版
+    const calc = (base, grow, level, starMul, wbVal, add = 0, eqMul1 = 1.0, eqMul2 = 1.0) => {
+      const raw = base + (grow * (level - 1));
+      // 神秘解放補正 + WB補正
+      const totalMultiplier = starMul + (wbVal * 0.002);
+      // 乗算して四捨五入
+      let val = Math.round(raw * totalMultiplier);
+      // 固定値を足して倍率を掛け、切り捨て
+      return Math.floor((val + add) * eqMul1 * eqMul2);
+    };
+
+    const finalHP = calc(baseStats.hp.base, baseStats.hp.grow, levelValue, starMultipliers.hp, wbHpValue, hpBonusAdd, soubiHpMultiplier, soubi2HpMultiplier);
+    const finalDEF = calc(baseStats.def.base, baseStats.def.grow, levelValue, 1.0, 0, defBonusAdd);
+    const finalATK = calc(baseStats.atk.base, baseStats.atk.grow, levelValue, starMultipliers.atk, wbAtkValue, atkBonusAdd, soubiAtkMultiplier);
+    const finalHEAL = calc(baseStats.heal.base, baseStats.heal.grow, levelValue, starMultipliers.heal, wbHealValue);
+
+    document.getElementById('hp-value').textContent = finalHP;
+    document.getElementById('def-value').textContent = finalDEF;
+    document.getElementById('atk-value').textContent = finalATK;
+    document.getElementById('heal-value').textContent = finalHEAL;
+    
+    currentCharId = baseStatsData.id;
+    currentAtk = finalATK;
+  }
+
+  // --- 4. モーダル制御とダメージ計算ロジック ---
+  const modal = document.getElementById('damage-modal');
+  const openBtn = document.getElementById('open-modal-btn');
+  const closeBtn = document.getElementById('close-modal-btn');
+  const enemySelect = document.getElementById('enemy-select');
+  const calcBtn = document.getElementById('calc-execute-btn');
+
+  // 相性表
+  const typeChart = {
+    '爆発': { '軽装備': 2.0, '重装甲': 1.0, '特殊装甲': 0.5, '弾力装甲': 1.0 },
+    '貫通': { '軽装備': 1.0, '重装甲': 2.0, '特殊装甲': 0.5, '弾力装甲': 1.0 },
+    '神秘': { '軽装備': 0.5, '重装甲': 1.0, '特殊装甲': 2.0, '弾力装甲': 1.0 },
+    '振動': { '軽装備': 0.5, '重装甲': 1.0, '特殊装甲': 1.0, '弾力装甲': 2.0 }
+  };
+
+  // ウィンドウを開く
+  openBtn.addEventListener('click', async () => {
+    modal.style.display = 'flex';
+    document.getElementById('modal-current-atk').textContent = currentAtk;
+
+    if (enemySelect.options.length <= 1) {
+      await loadEnemies();
+    }
+  });
+
+  // 閉じる処理
+  closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+  window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+  // 敵リスト取得
+  async function loadEnemies() {
+    try {
+      const response = await fetch('/api/enemies');
+      const enemies = await response.json();
+      enemySelect.innerHTML = '<option value="">敵を選択してください</option>';
+      enemies.forEach(enemy => {
+        const option = document.createElement('option');
+        // JSONで防御力とタイプを保持
+        option.value = JSON.stringify({ def: enemy.defense, type: enemy.defense_type });
+        option.textContent = enemy.name;
+        enemySelect.appendChild(option);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // 敵選択時の表示更新
+  enemySelect.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (!val) {
+      document.getElementById('enemy-def-display').textContent = "0";
+      document.getElementById('enemy-type-display').textContent = "-";
+      document.getElementById('def-reduction-rate').textContent = "";
+      return;
+    }
+    
+    const data = JSON.parse(val);
+    const def = data.def;
+    const reductionRate = def / (def + 1440);
+    const reductionPercent = (reductionRate * 100).toFixed(2);
+
+    document.getElementById('enemy-def-display').textContent = def;
+    document.getElementById('enemy-type-display').textContent = data.type;
+    document.getElementById('def-reduction-rate').textContent = `(軽減率: ${reductionPercent}%)`;
+  });
+
+  // ダメージ計算実行 (防御デバフ対応)
+  calcBtn.addEventListener('click', () => {
+    const baseAtkDisplay = parseInt(document.getElementById('modal-current-atk').textContent);
+    
+    // バフ・係数取得
+    const skillPercent = parseFloat(document.getElementById('skill-multiplier').value) || 0;
+    const buffAtkPercent = parseFloat(document.getElementById('buff-atk').value) || 0;
+    const buffCritDmgPercent = parseFloat(document.getElementById('buff-crit-dmg').value) || 0;
+    const buffDmgPercent = parseFloat(document.getElementById('buff-dmg').value) || 0;
+    const debuffDefPercent = parseFloat(document.getElementById('debuff-def').value) || 0;
+
+    const accuracy = parseInt(document.getElementById('stat-accuracy').value) || 100;
+    const stability = parseInt(document.getElementById('stat-stability').value) || 1000;
+    
+    // 敵情報の取得
+    const enemyVal = enemySelect.value;
+    const enemyEvaInput = parseInt(document.getElementById('enemy-eva-input').value) || 0;
+
+    if (!enemyVal) {
+      alert("敵を選択してください");
+      return;
+    }
+    const enemyData = JSON.parse(enemyVal);
+    const originalDef = enemyData.def;
+    const defType = enemyData.type;
+    const atkType = document.getElementById('attack-type-select').value;
+
+    // 1. 攻撃力計算 (バフ適用)
+    const buffedAtk = baseAtkDisplay * (1.0 + buffAtkPercent / 100.0);
+
+    // 2. 防御デバフ適用
+    let finalDef = originalDef * (1.0 - debuffDefPercent / 100.0);
+    if (finalDef < 0) finalDef = 0;
+    document.getElementById('res-def-final').textContent = Math.floor(finalDef);
+
+    // 3. 防御係数 (1440 / (防御 + 1440))
+    const defMultiplier = 1440.0 / (finalDef + 1440.0);
+
+    // 4. 相性計算
+    let typeMultiplier = 1.0;
+    if (typeChart[atkType] && typeChart[atkType][defType]) {
+      typeMultiplier = typeChart[atkType][defType];
+    }
+    document.getElementById('res-type-adv').textContent = typeMultiplier + "倍";
+
+    // 5. 命中率
+    let hitRate = 1.0;
+    if (enemyEvaInput > accuracy) {
+      hitRate = 700.0 / ((enemyEvaInput - accuracy) + 700.0);
+    }
+    document.getElementById('res-hit-rate').textContent = Math.floor(hitRate * 100) + "%";
+
+    // 6. 安定値係数 (最低乱数)
+    let minFactor = (stability / (stability + 1000.0)) + 0.2;
+    if (minFactor > 1.0) minFactor = 1.0;
+
+    // 7. 基本ダメージ計算
+    const baseDamage = buffedAtk * (skillPercent / 100.0) * defMultiplier * typeMultiplier * (1.0 + buffDmgPercent / 100.0);
+
+    // 乱数幅 (上限と下限)
+    const damageMax = baseDamage * 1.0;
+    const damageMin = baseDamage * minFactor;
+
+    // 8. 会心ダメージ計算
+    const critMultiplier = 2.0 + (buffCritDmgPercent / 100.0);
+    const critMax = damageMax * critMultiplier;
+    const critMin = damageMin * critMultiplier;
+
+    // 表示更新
+    document.getElementById('dmg-normal-min').textContent = Math.floor(damageMin).toLocaleString();
+    document.getElementById('dmg-normal-max').textContent = Math.floor(damageMax).toLocaleString();
+    document.getElementById('dmg-crit-min').textContent = Math.floor(critMin).toLocaleString();
+    document.getElementById('dmg-crit-max').textContent = Math.floor(critMax).toLocaleString();
+  });
+
+  // --- 5. 初期ロード処理 ---
+  async function loadCharacters() {
+    const charSelect = document.getElementById('character-select');
+    const characters = await fetchCharacters();
+    
+    if (characters.length > 0) {
+      charSelect.options.length = 0; 
+      characters.forEach(char => {
+        const option = document.createElement('option');
+        option.value = char.name;
+        option.textContent = char.name;
+        charSelect.appendChild(option);
+      });
+      await updateStats();
+    } else {
+      charSelect.options[0].textContent = 'エラー';
+    }
+  }
+
+  // イベント登録
+  window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('select').forEach(select => {
+      // モーダル外のプルダウン変更のみステータス再計算に紐づける
+      if (select.id !== 'character-select' && !select.closest('#damage-modal')) {
+        select.addEventListener('change', updateStats);
+      }
+    });
+
+    document.getElementById('character-select').addEventListener('change', updateStats);
+    loadCharacters();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+@charset "UTF-8";
+
+/* 1. Google Fontsからモダンなフォントを読み込む */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+
+/* 2. 基本設定 (リセットとフォント指定) */
+* {
+  box-sizing: border-box; /* レイアウト計算を簡単に */
+}
+
+body {
+  background-color: #878a8d; /* 背景を薄いグレーに */
+  font-family: 'Noto Sans JP', sans-serif; /* モダンなフォントを全体に適用 */
+  color: #9b8888;
+  margin: 0;
+  padding: 40px; /* 画面の端に余白 */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 全体を中央揃えに */
+}
+
+/* 3. ページのメインタイトル */
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #222;
+  border: none; /* 枠線を削除 */
+  width: auto;
+  margin-bottom: 30px;
+}
+
+/* 4. 全体を囲む「カード」デザイン */
+.info-box {
+  display: flex; /* ★ここでフレックスボックス（横並び）を指定 */
+  align-items: flex-start;
+  gap: 30px; /* 画像とテキストの隙間 */
+  background-color: #ffffff; /* カードを薄緑に */
+  padding: 32px; /* カード内部の余白 */
+  border-radius: 16px; /* カードの角を丸める */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); /* 薄い影をつけて立体感を出す */
+  max-width: 1200px;
+}
+
+/* 5. キャラクター画像 */
+#character-image {
+  width: 264px; 
+  height: 400px; 
+  max-height: 600px; /* ★最大の高さを制限 */
+  object-fit: contain; /* ★ボックス内に収める */
+  
+  border: 15px solid #eee;
+  border-radius: 8px;
+  flex-shrink: 0; 
+}
+
+
+/* 6. 右側の全レイアウト */
+.text-left {
+  display: flex;
+  flex-direction: column; /* ★右側ブロック内は縦並び */
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* 7. 名前とステータス欄 */
+.name-and-stats {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between; 
+  width: 100%;
+  gap: 40px;
+}
+
+/* 8. 名前 (ハルカ) */
+.text-ue p {
+  margin: 0;
+  font-size: 80px; 
+  font-weight: 700;
+  color: #222;
+  border: none; 
+  padding: 0;
+  line-height: 1.1;
+}
+
+/* 9. ステータス表示欄 (HP, 攻撃力など) */
+.text-migi-group {
+  display: grid; 
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px; 
+  flex-shrink: 0; 
+}
+
+.text-migi p,
+.text-migi2 p {
+  margin: 0;
+  font-size: 20px; 
+  font-weight: 700;
+  color: #555;
+}
+
+.text-migi span,
+.text-migi2 span {
+  font-size: 22px;
+  color: #007bff; 
+  margin-left: 8px;
+  font-family: monospace; 
+}
+
+/* 10. オプション選択欄 (☆, Lv, 武器, 装備など) */
+.text-naka,
+.text-shita {
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 20px 40px; 
+  margin-top: 30px; 
+  width: 100%;
+}
+
+/* 以前の複雑なマージン指定を削除 */
+.column-left,
+.column-right,
+.column-left2,
+.column-right2 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; 
+}
+
+.column-left p,
+.column-right p,
+.column-left2 p,
+.column-right2 p {
+  font-size: 18px; 
+  margin: 0;
+  display: flex;
+  align-items: center; 
+  justify-content: space-between; 
+  width: 100%;
+}
+
+/* 11. (★修正) セレクトボックスのカスタム */
+select {
+  font-size: 16px; /* ★フォントサイズを16pxに戻す */
+  font-weight: 700;
+  color: #333;
+  background-color: #f8f9fa; 
+  border: 1px solid #dee2e6; /* ★正しいborderの書き方 */
+  border-radius: 6px; /* ★角丸 */
+  padding: 8px 30px 8px 12px; /* ★余白 */
+  margin-left: 10px; 
+  
+  /* デフォルトの矢印を消す */
+  -webkit-appearance: none;
+  appearance: none;
+  
+  /* カスタム矢印 (SVG) */
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="none" stroke="%23333" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 5l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px 16px;
+  cursor: pointer;
+}
+
+/* 選択肢が3つの装備セレクトボックスを少し小さく */
+#soubi-1, #soubi-2, #soubi-3 {
+  width: 80px;
+  padding-left: 8px;
+  padding-right: 24px;
+  background-position: right 4px center;
+}
+
+/*
+ * 12. キャラクター選択プルダウン
+ */
+#character-select {
+  /* 既存のセレクトボックスのスタイルを継承しつつ上書き */
+  font-size: 80px; 
+  font-weight: 700;
+  color: #222;
+  border: none;
+  padding: 0 50px 0 0; 
+  line-height: 1.1;
+  background-color: transparent; 
+  background-position: right 8px center;
+  background-size: 40px 40px; 
+  width: auto; 
+  max-width: 500px; 
+}
+
+/* --- ダメージ計算モーダルウィンドウ --- */
+/* 背景の黒いもや */
+.modal-overlay {
+  display: none; /* 初期状態は非表示 */
+  position: fixed;
+  z-index: 1000; /* 最前面に */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明の黒 */
+  align-items: center;
+  justify-content: center;
+}
+
+/* 白いウィンドウ部分 */
+.modal-content {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  position: relative;
+  animation: fadeIn 0.3s;
+}
+
+/* 閉じるボタン */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #aaa;
+  cursor: pointer;
+}
+.close-btn:hover {
+  color: #000;
+}
+
+/* 開くボタンのデザイン */
+.calc-open-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #ff6b6b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: background-color 0.2s;
+}
+.calc-open-btn:hover {
+  background-color: #ff5252;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* モーダル内のレイアウト調整 */
+.calc-row {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.enemy-info {
+  background-color: #f0f0f0;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+.calc-exec-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.calc-exec-btn:hover {
+  background-color: #0056b3;
+}
+.result-area {
+  background-color: #e8f5e9;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+.final-damage {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2e7d32;
+  margin: 10px 0 0 0;
+}
+
+/* モーダル内のグリッドレイアウト */
+.calc-section h3 {
+  font-size: 16px;
+  margin: 5px 0 10px 0;
+  border-left: 4px solid #007bff;
+  padding-left: 8px;
+  color: #555;
+}
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+.input-group label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.input-group input {
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.calc-row-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.calc-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.damage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.damage-table th, .damage-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+.damage-table th {
+  background-color: #f9f9f9;
+  font-size: 12px;
+}
+
