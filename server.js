@@ -5,7 +5,9 @@ const path = require('path');
 
 // 2. Expressアプリを作成
 const app = express();
-const port = 3000;
+
+// ★★★ 修正ポイント1: Renderのポートに対応させる ★★★
+const port = process.env.PORT || 3000;
 
 // 3. データベースに接続
 const db = new sqlite3.Database('./bluearchive.db', (err) => {
@@ -33,11 +35,10 @@ const dbAll = (sql, params = []) => {
   });
 };
 
-// --- (★キャラ切り替え対応) 全キャラクターのリストを取得するAPI ---
+// --- 全キャラクターのリストを取得するAPI ---
 app.get('/api/characters', async (req, res) => {
   console.log('リクエスト受信: /api/characters (全キャラリスト)');
   try {
-    // IDと名前だけをリストで取得
     const characters = await dbAll('SELECT id, name FROM characters ORDER BY name');
     res.json(characters);
   } catch (err) {
@@ -45,16 +46,13 @@ app.get('/api/characters', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// --- (★ここまで) ---
 
-
-// 4. (既存) 拡張されたキャラクターAPI
+// --- キャラクター詳細API ---
 app.get('/api/character/:name', async (req, res) => {
   const characterName = req.params.name;
   console.log(`リクエスト受信 (拡張API): /api/character/${characterName}`);
 
   try {
-    // (A) キャラクター基本情報
     const character = await dbGet('SELECT * FROM characters WHERE name = ?', [characterName]);
     if (!character) {
       console.log('データが見つかりませんでした。');
@@ -62,19 +60,15 @@ app.get('/api/character/:name', async (req, res) => {
     }
     const charId = character.id;
 
+    // 愛用品チェック
     const bondGearFlag = await dbGet('SELECT 1 FROM bond_gear_flags WHERE character_id = ?', [charId]);
-    const hasBondGear = !!bondGearFlag; // データがあれば true, なければ false に変換
+    const hasBondGear = !!bondGearFlag;
 
-    // (B) 星ボーナス
     const starBonuses = await dbAll('SELECT * FROM star_bonuses');
-    // (C) 絆ボーナス
     const kizunaBonuses = await dbAll('SELECT * FROM kizuna_bonuses WHERE character_id = ?', [charId]);
-    // (D) 武器ボーナス
     const weaponBonuses = await dbAll('SELECT * FROM weapon_bonuses WHERE character_id = ?', [charId]);
-    // (E) 装備ボーナス
     const equipmentBonuses = await dbAll('SELECT * FROM equipment_bonuses');
 
-    // 5. データをまとめる
     const responseData = {
       baseStats: character,
       hasBondGear: hasBondGear,
@@ -86,7 +80,6 @@ app.get('/api/character/:name', async (req, res) => {
       }
     };
     
-    console.log('全キャラデータをJSONで送信します。');
     res.json(responseData);
 
   } catch (err) {
@@ -95,7 +88,7 @@ app.get('/api/character/:name', async (req, res) => {
   }
 });
 
-// 6. (既存) 敵リストを取得するAPI
+// --- 敵リストを取得するAPI ---
 app.get('/api/enemies', async (req, res) => {
   console.log('リクエスト受信: /api/enemies (全敵リスト)');
   try {
@@ -107,7 +100,7 @@ app.get('/api/enemies', async (req, res) => {
   }
 });
 
-// 7. (既存) 特定キャラのスキルリストを取得するAPI
+// --- スキルリストを取得するAPI ---
 app.get('/api/skills/:characterId', async (req, res) => {
   const charId = req.params.characterId;
   console.log(`リクエスト受信: /api/skills/${charId} (特定キャラスキル)`);
@@ -120,11 +113,11 @@ app.get('/api/skills/:characterId', async (req, res) => {
   }
 });
 
-// 8. publicフォルダの中身を配信する設定
-app.use(express.static(path.join(__dirname, 'public')));
+// ★★★ 修正ポイント2: ファイルの読み込み場所を変更 ★★★
+// 'public' フォルダではなく、現在のフォルダ (__dirname) を参照するように変更
+app.use(express.static(__dirname));
 
 // 9. サーバーを起動
 app.listen(port, () => {
   console.log(`サーバーが http://localhost:${port} で起動しました`);
-  console.log('APIが拡張されました (characters, enemies, skills)。');
 });
